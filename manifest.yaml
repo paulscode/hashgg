@@ -1,7 +1,7 @@
 id: hashgg
 title: "HashGG"
-version: 0.1.0.0
-release-notes: "Initial release — playit.gg tunnel for Datum Gateway"
+version: 0.2.0.0
+release-notes: "Add StartOS 0.4.0 support; parameterize Datum Gateway hostname for dual-version compatibility"
 license: MIT
 wrapper-repo: "https://github.com/paulscode/hashgg"
 upstream-repo: "https://github.com/playit-cloud/playit-agent"

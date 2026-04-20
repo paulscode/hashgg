@@ -1,0 +1,15 @@
+{
+  "name": "hashgg-startos",
+  "scripts": {
+    "build": "rm -rf ./javascript && ncc build startos/index.ts -o ./javascript",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@start9labs/start-sdk": "1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.0",
+    "@vercel/ncc": "^0.38.4",
+    "typescript": "^5.9.3"
+  }
+}

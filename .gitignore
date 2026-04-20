@@ -4,3 +4,7 @@
 docker-images/
 scripts/*.js
 *.s9pk
+node_modules/
+javascript/
+icon-040.png
+deno.lock

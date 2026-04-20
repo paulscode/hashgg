@@ -1,7 +1,7 @@
 PKG_ID := $(shell yq -e ".id" manifest.yaml)
 PKG_VERSION := $(shell yq -e ".version" manifest.yaml)
 BUILD_DIR := builds/$(PKG_VERSION)
-TS_FILES := $(shell find . -name \*.ts )
+TS_FILES := $(shell find . -name \*.ts -not -path './startos/*' -not -path './node_modules/*' )
 
 .DELETE_ON_ERROR:
 
@@ -63,3 +63,48 @@ else
 	@echo "start-sdk: Preparing Universal Package ..."
 endif
 	@start-sdk pack
+
+# === StartOS 0.4.0 targets ===
+.PHONY: pack-040 pack-040-x86 pack-040-arm install-040 clean-040 release-all
+
+pack-040: pack-040-x86 pack-040-arm
+
+pack-040-x86: javascript/index.js
+	start-cli s9pk pack --arch=x86_64 -o $(PKG_ID)_x86_64.s9pk
+
+pack-040-arm: javascript/index.js
+	start-cli s9pk pack --arch=aarch64 -o $(PKG_ID)_aarch64.s9pk
+
+javascript/index.js: $(shell find startos -type f 2>/dev/null) tsconfig.json node_modules
+	npm run build
+
+node_modules: package-lock.json
+	npm ci
+
+package-lock.json: package.json
+	npm i
+
+install-040: pack-040-x86
+	@HOST=$$(awk -F'/' '/^host:/ {print $$3}' ~/.startos/config.yaml); \
+	if [ -z "$$HOST" ]; then echo "Error: Define \"host: http://server-name.local\" in ~/.startos/config.yaml"; exit 1; fi; \
+	printf "\nInstalling to $$HOST ...\n"; \
+	start-cli package install -s $(PKG_ID)_x86_64.s9pk
+
+# Build both 0.3.5.1 and 0.4.0 universal packages into builds/<version>/
+release-all: verify javascript/index.js
+	rm -rf $(BUILD_DIR)
+	mkdir -p $(BUILD_DIR)
+	cp $(PKG_ID).s9pk $(BUILD_DIR)/hashgg-0351.s9pk
+	start-cli s9pk pack -o $(BUILD_DIR)/hashgg-040.s9pk
+	cd $(BUILD_DIR) && sha256sum *.s9pk > SHA256SUMS
+	@echo ""
+	@echo "Release builds:"
+	@ls -lh $(BUILD_DIR)/
+	@echo ""
+	@cat $(BUILD_DIR)/SHA256SUMS
+
+clean-040:
+	rm -f $(PKG_ID)_x86_64.s9pk $(PKG_ID)_aarch64.s9pk
+	rm -rf javascript node_modules
+
+clean-all: clean clean-040

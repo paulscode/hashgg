@@ -11,15 +11,19 @@ ENV yq_sha256_arm64=4ab0b301059348d671fc1833e99903c1fecc7ca287ac131f72dca0eb9a6b
 
 ARG ARCH
 ARG PLATFORM
-RUN curl -sLo /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.46.1/yq_linux_${PLATFORM} && \
-    eval echo "\${yq_sha256_${PLATFORM}} */usr/local/bin/yq" | sha256sum -c && \
+ARG TARGETARCH
+# Use PLATFORM if provided (0.3.5.1 build), otherwise derive from TARGETARCH (0.4.0 build)
+RUN PLAT="${PLATFORM:-${TARGETARCH}}"; \
+    curl -sLo /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.46.1/yq_linux_${PLAT} && \
+    eval echo "\${yq_sha256_${PLAT}} */usr/local/bin/yq" | sha256sum -c && \
     chmod +x /usr/local/bin/yq
 
 # Install playit daemon binary (v1.0.0-rc17 playitd)
 ENV PLAYIT_VERSION=1.0.0-rc17
-RUN if [ "$PLATFORM" = "amd64" ]; then \
+RUN PLAT="${PLATFORM:-${TARGETARCH}}"; \
+    if [ "$PLAT" = "amd64" ]; then \
       curl -sLo /tmp/playit.deb https://github.com/playit-cloud/playit-agent/releases/download/v${PLAYIT_VERSION}/playit_amd64.deb; \
-    elif [ "$PLATFORM" = "arm64" ]; then \
+    elif [ "$PLAT" = "arm64" ]; then \
       curl -sLo /tmp/playit.deb https://github.com/playit-cloud/playit-agent/releases/download/v${PLAYIT_VERSION}/playit_arm64.deb; \
     fi && \
     dpkg -x /tmp/playit.deb /tmp/playit-extract && \
