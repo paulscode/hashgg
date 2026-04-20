@@ -49,7 +49,7 @@ Your Start9 server builds its own block templates using your own Bitcoin node. D
 
 ## Requirements
 
-- A [Start9](https://start9.com) server running **StartOS 0.3.5.1**
+- A [Start9](https://start9.com) server running **StartOS 0.3.5.1** or **0.4.0**
 - **[Datum Gateway](https://github.com/ocean-xyz/datum-gateway)** installed and running (this requires Bitcoin Knots)
 - A [playit.gg](https://playit.gg) account with **Premium** (~$3/month) — [why?](#why-premium)
 
