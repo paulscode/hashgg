@@ -59,13 +59,19 @@ Your Start9 server builds its own block templates using your own Bitcoin node. D
 
 ## Requirements
 
-- A [Start9](https://start9.com) server running **StartOS 0.3.5.1** or **0.4.0**
-- **[Datum Gateway](https://github.com/ocean-xyz/datum-gateway)** installed and running (this requires Bitcoin Knots)
+HashGG runs two ways — pick the one that matches your setup:
+
+- **On StartOS** (primary): a [Start9](https://start9.com) server running **StartOS 0.3.5.1** or **0.4.0**. Follow [Quick Start (StartOS)](#quick-start-startos) below.
+- **On Debian-based Linux** (Debian, Ubuntu, Linux Mint, Zorin, etc.) running Bitcoin Knots directly: jump to [Running HashGG on Linux](#running-hashgg-on-linux-without-startos). *Other distros (RHEL/Fedora/Arch/etc.) can run the HashGG container too, but the Datum Gateway install steps will need local adaptation — the install script is Debian-only.*
+
+Either path, you'll also need:
+
+- **[Datum Gateway](https://github.com/ocean-xyz/datum-gateway)** running alongside Bitcoin Knots.
 - One of:
   - A [playit.gg](https://playit.gg) account with **Premium** (~$3/month) — [why?](#why-premium), **or**
   - A VPS with root SSH access (any Debian, Ubuntu, or RHEL-family distro). We recommend [BitLaunch](https://app.bitlaunch.io/signup) (~$11/month, funded with Bitcoin, anonymous signup).
 
-## Quick Start
+## Quick Start (StartOS)
 
 1. Install **Datum Gateway** on your StartOS server (requires Bitcoin Knots)
 2. Install **HashGG** from the StartOS marketplace (or sideload the `.s9pk`)
@@ -76,6 +82,62 @@ Your Start9 server builds its own block templates using your own Bitcoin node. D
 5. Point your miners to it
 
 That's it. Your miners can now connect to your Datum Gateway from anywhere on the internet.
+
+---
+
+## Running HashGG on Linux (without StartOS)
+
+If you're running Bitcoin Knots directly on a Linux machine (not a Start9 server) — for example `bitcoin-qt` on a Linux Mint workstation — you can run HashGG in Docker on the same machine. You'll set up Datum Gateway natively and HashGG in a container that talks to it.
+
+### Prerequisites
+
+- **Bitcoin Knots** (as `bitcoin-qt` or `bitcoind`) already installed.
+- **A Debian-based distribution** — tested on Linux Mint; should work on Debian, Ubuntu, Zorin, and the rest of the Ubuntu/Debian family. RHEL/Fedora/Arch/openSUSE users can still run the HashGG container, but the `host-setup/install-datum-gateway.sh` script will refuse to run (it's apt/dpkg-based) — you'll need to install Datum Gateway via your own distro's tooling.
+- **Docker Engine** + **Docker Compose plugin** (`sudo apt install docker.io docker-compose-v2`, then add yourself to the `docker` group and log out/in).
+- **Git and make** (`sudo apt install git make`) to fetch the repo and drive the build.
+
+> **Before you start — wallet note.** Datum Gateway gets full RPC access to whatever Bitcoin Knots node it points at. If that Knots has a loaded wallet with real funds, **a compromise of Datum is a compromise of the wallet**. Either use a dedicated Knots instance with `disablewallet=1` for mining, or confirm no meaningful funds live on this node before continuing.
+
+### Step 1 — Set up Datum Gateway
+
+Clone this repo, then follow the five-step script. Full details in [`host-setup/README.md`](host-setup/README.md).
+
+```bash
+git clone https://github.com/paulscode/hashgg.git
+cd hashgg
+bash host-setup/install-datum-gateway.sh check-knots    # print a paste-in for bitcoin.conf
+# (edit bitcoin.conf with the lines it prints, restart bitcoin-qt, re-run check-knots)
+bash host-setup/install-datum-gateway.sh build          # build Datum from the pinned release
+bash host-setup/install-datum-gateway.sh configure      # set payout address, coinbase tags
+bash host-setup/install-datum-gateway.sh open-firewall  # open Docker bridge -> Datum (ufw)
+bash host-setup/install-datum-gateway.sh run            # run Datum in this terminal; Ctrl-C stops it
+```
+
+Leave that terminal open — Datum keeps running while you mine. (For `bitcoind`-as-a-service users, swap the last line for `install-daemon` and it becomes a systemd service instead.)
+
+### Step 2 — Start HashGG
+
+In a new terminal:
+
+```bash
+docker compose up -d
+docker compose logs hashgg     # should show backend listening on :3000
+```
+
+The web UI binds to `127.0.0.1:3000` by default (the UI has no authentication — see [Security notes](#security-notes) below). If you want LAN access, edit `docker-compose.yml` and put a reverse proxy with auth in front.
+
+### Step 3 — Pick a tunnel and point a miner
+
+Open http://localhost:3000 in your browser. Pick **playit.gg** or **VPS**, follow the UI through the setup flow, copy the resulting public `stratum+tcp://host:port` endpoint, and point any miner at it.
+
+### Security notes
+
+- HashGG's web UI ships with **no authentication**. The default compose binding is loopback-only for that reason. Don't expose port 3000 to the LAN without a reverse proxy + auth in front.
+- Datum's admin API is bound to `127.0.0.1:7152` by our config generator — reachable from the host, not from Docker containers or the LAN.
+- The Docker bridge → Datum firewall rule uses `172.16.0.0/12` (the full RFC1918 range Docker allocates bridge networks from). Any container on your Docker daemon can therefore reach Datum's stratum port. On a single-user workstation that's fine; on a shared host it's a consideration.
+- The VPS SSH private key (VPS mode) and the playit secret (playit mode) are stored in the `hashgg-data` named Docker volume. Back them up like credentials.
+
+---
 
 ### Why Premium?
 

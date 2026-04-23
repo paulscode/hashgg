@@ -25,8 +25,13 @@ const MIME_TYPES = {
   '.ico': 'image/x-icon',
 };
 
-// Read config for the stratum port
+// Read config for the stratum port. Precedence: DATUM_STRATUM_PORT env var
+// (plain Docker use), then StartOS config.yaml, then default 23335.
 function getStratumPort() {
+  if (process.env.DATUM_STRATUM_PORT) {
+    const p = parseInt(process.env.DATUM_STRATUM_PORT, 10);
+    if (p) return p;
+  }
   try {
     const { execSync } = require('child_process');
     const port = execSync(`yq e '.advanced.datum_stratum_port // 23335' ${CONFIG_FILE}`, { encoding: 'utf8' }).trim();
@@ -367,9 +372,12 @@ async function handleApi(req, res) {
       sock.setTimeout(5000);
     });
 
-    // Test 3: Can we connect to datum.embassy:stratumPort directly?
+    // Test 3: Can we connect to Datum directly at its configured host:port?
+    // Matches the entrypoint's DATUM_HOST default so plain-Docker users don't
+    // see a bogus failure here; StartOS inherits 'datum.embassy'.
+    const datumHost = process.env.DATUM_HOST || 'datum.embassy';
     const testDatum = () => new Promise((resolve) => {
-      const sock = net.createConnection({ host: 'datum.embassy', port: stratumPort }, () => {
+      const sock = net.createConnection({ host: datumHost, port: stratumPort }, () => {
         results.datum_connect = 'ok';
         const msg = JSON.stringify({id:1,method:'mining.subscribe',params:['diag/1.0']}) + '\n';
         sock.write(msg);
@@ -399,6 +407,7 @@ async function handleApi(req, res) {
     await testLocal();
     await testDatum();
     results.stratum_port = stratumPort;
+    results.datum_host = datumHost;
 
     // Test 3: Check V1 rundata (what playitd daemon uses for OriginLookup)
     const s2 = state.get();

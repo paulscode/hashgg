@@ -108,3 +108,31 @@ clean-040:
 	rm -rf javascript node_modules
 
 clean-all: clean clean-040
+
+# === Generic Docker image (Docker Hub) ===
+# Used for the plain-Docker deployment path (Linux host running Datum Gateway
+# natively, HashGG in a container). Not used by StartOS.
+#
+# Override with `make docker-build-local DOCKER_TAG=0.4.0.0` etc.
+DOCKER_REPO ?= paulscode/hashgg
+DOCKER_TAG  ?= $(PKG_VERSION)
+
+.PHONY: docker-build-local docker-buildx
+
+# Single-arch build for local testing (no push). Tags :<version> and :latest.
+docker-build-local:
+	docker build \
+	  -t $(DOCKER_REPO):$(DOCKER_TAG) \
+	  -t $(DOCKER_REPO):latest \
+	  .
+
+# Multi-arch build + push to Docker Hub. One-time setup:
+#   docker login
+#   docker buildx create --use --name hashgg-builder
+docker-buildx:
+	docker buildx build \
+	  --platform linux/amd64,linux/arm64 \
+	  -t $(DOCKER_REPO):$(DOCKER_TAG) \
+	  -t $(DOCKER_REPO):latest \
+	  --push \
+	  .

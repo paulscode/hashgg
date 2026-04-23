@@ -8,3 +8,41 @@ node_modules/
 javascript/
 icon-040.png
 deno.lock
+
+# --- Datum Gateway build artifacts ---
+# The install script writes to $HOME by default, but these catch accidental
+# in-repo clones or env-var overrides (USER_SRC_DIR=./... etc.)
+/datum_gateway/
+/datum-gateway/
+/datum-src/
+/datum-build/
+
+# --- Host-setup logs ---
+/install-datum-gateway.log
+/host-setup/*.log
+
+# --- Local credentials / secrets ---
+# Defensive: our scripts don't write these into the repo, but nothing in git
+# should ever be named one of these either.
+datum_gateway.json
+*.cookie
+.env
+.env.local
+
+# --- Docker compose local overrides ---
+docker-compose.override.yml
+docker-compose.override.yaml
+
+# --- Docker buildx / publish ephemera (Part D) ---
+*.sbom
+*.spdx.json
+sbom-*.json
+provenance-*.json
+
+# --- OS / editor cruft ---
+.DS_Store
+Thumbs.db
+*~
+*.swp
+*.swo
+*.bak

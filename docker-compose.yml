@@ -1,0 +1,26 @@
+# HashGG — plain-Docker deployment.
+# See internal_docs/docker-image-plan.md for the full picture.
+# For StartOS, use the .s9pk package instead; this file is not used there.
+
+services:
+  hashgg:
+    image: paulscode/hashgg:0.4.0.0
+    container_name: hashgg
+    restart: unless-stopped
+    ports:
+      # Loopback-only: HashGG's web UI has no auth (plan §9.2). Change to
+      # "3000:3000" to expose on the LAN, and put a reverse proxy with auth
+      # in front if you do.
+      - "127.0.0.1:3000:3000"
+    environment:
+      # Where Datum Gateway is listening on the host. `host-gateway` resolves
+      # to the Docker bridge's host-side IP on Linux (Docker Engine >= 20.10).
+      DATUM_HOST: host.docker.internal
+      DATUM_STRATUM_PORT: "23335"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - hashgg-data:/root/data
+
+volumes:
+  hashgg-data:

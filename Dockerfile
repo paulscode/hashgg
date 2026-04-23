@@ -1,4 +1,13 @@
+# TODO (§9.6): pin by manifest-list digest at publish time, e.g.
+#   FROM debian:bookworm-slim@sha256:<digest>
+# Get the current digest with:
+#   docker buildx imagetools inspect debian:bookworm-slim
 FROM debian:bookworm-slim AS base
+
+LABEL org.opencontainers.image.title="HashGG" \
+      org.opencontainers.image.description="Sovereign hash routing for Datum Gateway — expose your stratum port to the internet via playit.gg or a VPS SSH tunnel." \
+      org.opencontainers.image.source="https://github.com/paulscode/hashgg" \
+      org.opencontainers.image.licenses="MIT"
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -44,3 +53,11 @@ ADD ./check-tunnel.sh /usr/local/bin/check-tunnel.sh
 RUN chmod a+x /usr/local/bin/check-tunnel.sh
 ADD ./check-datum.sh /usr/local/bin/check-datum.sh
 RUN chmod a+x /usr/local/bin/check-datum.sh
+
+# Informational — the entrypoint binds here; docker-compose / `docker run -p`
+# decide how it's published on the host.
+EXPOSE 3000
+
+# Plain-Docker entrypoint. StartOS ignores this and uses manifest.yaml's
+# `main.entrypoint` instead, so the StartOS build is unaffected.
+ENTRYPOINT ["/usr/local/bin/docker_entrypoint.sh"]
