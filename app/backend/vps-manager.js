@@ -8,8 +8,12 @@ const state = require('./state');
 const SSH_BIN = '/usr/bin/ssh';
 const KEY_FILE = '/root/data/vps_ssh_key';
 const KNOWN_HOSTS_FILE = '/root/data/vps_known_hosts';
-// Local socat proxy port (always 23335 per docker_entrypoint.sh LISTEN_PORT)
-const LOCAL_STRATUM_PORT = 23335;
+// Port that socat listens on inside the container — where the SSH reverse tunnel
+// forwards miner traffic. Must match the entrypoint's LISTEN_PORT, which defaults
+// to DATUM_STRATUM_PORT. Hardcoding 23335 here was fine when that was always the
+// default, but since v0.4.0.0 we honor DATUM_STRATUM_PORT from env (Umbrel sets
+// 23334, for example) — so re-read it.
+const LOCAL_STRATUM_PORT = parseInt(process.env.LISTEN_PORT || process.env.DATUM_STRATUM_PORT, 10) || 23335;
 const MAX_BACKOFF = 60000;
 const STABLE_AFTER_MS = 5000;
 

@@ -10,11 +10,15 @@ else
   DATUM_STRATUM_PORT="${DATUM_STRATUM_PORT:-23335}"
 fi
 DATUM_HOST="${DATUM_HOST:-datum.embassy}"
-# LISTEN_PORT: the port socat/playit use locally (always matches DATUM_STRATUM_PORT on 0.3.5.1;
-# on 0.4.0, playit creates its tunnel using this port via the server.js getStratumPort()).
+# LISTEN_PORT: the port socat/playit/ssh-tunnel use locally.
+# Defaults to DATUM_STRATUM_PORT so the simple case doesn't need configuration.
 LISTEN_PORT="${LISTEN_PORT:-${DATUM_STRATUM_PORT}}"
-# DATUM_REMOTE_PORT: the actual stratum port on Datum Gateway (may differ from LISTEN_PORT on 0.4.0)
+# DATUM_REMOTE_PORT: the actual stratum port on Datum Gateway (may differ from LISTEN_PORT).
 DATUM_REMOTE_PORT="${DATUM_REMOTE_PORT:-${DATUM_STRATUM_PORT}}"
+
+# Export so the node backend's managers (vps-manager, tunnel-status) can read them.
+# Without export, these are shell-local and process.env won't see them.
+export DATUM_STRATUM_PORT DATUM_HOST LISTEN_PORT DATUM_REMOTE_PORT
 
 echo "[hashgg] Listen port (socat/playit): ${LISTEN_PORT}"
 echo "[hashgg] Datum remote port: ${DATUM_REMOTE_PORT}"

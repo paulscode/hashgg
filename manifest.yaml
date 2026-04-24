@@ -1,7 +1,7 @@
 id: hashgg
 title: "HashGG"
-version: 0.4.0.0
-release-notes: "Add plain-Docker deployment path for running HashGG on Debian-based Linux hosts (outside StartOS) alongside a native Datum Gateway install"
+version: 0.5.0.0
+release-notes: "Add Umbrel community-app-store support. Fix VPS tunnel when DATUM_STRATUM_PORT is overridden (previously hardcoded 23335). UI: favicon + clipboard fallback that selects source text when browser blocks clipboard API."
 license: MIT
 wrapper-repo: "https://github.com/paulscode/hashgg"
 upstream-repo: "https://github.com/playit-cloud/playit-agent"

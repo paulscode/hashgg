@@ -87,23 +87,61 @@ function showError(msg) {
   setTimeout(() => { els.errorBar.style.display = 'none'; }, 8000);
 }
 
-// Copy helper
-function copyText(text, feedbackEl) {
-  navigator.clipboard.writeText(text).then(() => {
+// Copy helper. Three paths:
+//   1. navigator.clipboard.writeText (modern, requires secure context + iframe clipboard-write permission)
+//   2. document.execCommand('copy') via a hidden textarea (legacy fallback)
+//   3. If both fail (e.g. embedded in Umbrel's iframe with no clipboard permission),
+//      visually select the source element so the user can Ctrl-C manually with one
+//      keystroke. The feedback text changes to make that clear.
+function copyText(text, feedbackEl, sourceEl) {
+  const flashFeedback = (msg) => {
+    const originalText = feedbackEl.textContent;
+    if (msg) feedbackEl.textContent = msg;
     feedbackEl.style.display = 'inline-block';
-    setTimeout(() => { feedbackEl.style.display = 'none'; }, 2000);
-  }).catch(() => {
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    ta.style.position = 'fixed';
-    ta.style.opacity = '0';
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
-    feedbackEl.style.display = 'inline-block';
-    setTimeout(() => { feedbackEl.style.display = 'none'; }, 2000);
-  });
+    setTimeout(() => {
+      feedbackEl.style.display = 'none';
+      if (msg) feedbackEl.textContent = originalText;
+    }, 3000);
+  };
+
+  const tryExec = () => {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      return ok;
+    } catch (_) {
+      return false;
+    }
+  };
+
+  const selectSource = () => {
+    if (!sourceEl) return;
+    const range = document.createRange();
+    range.selectNodeContents(sourceEl);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  };
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text)
+      .then(() => flashFeedback())
+      .catch(() => {
+        if (tryExec()) flashFeedback();
+        else { selectSource(); flashFeedback('Select & Ctrl-C'); }
+      });
+  } else if (tryExec()) {
+    flashFeedback();
+  } else {
+    selectSource();
+    flashFeedback('Select & Ctrl-C');
+  }
 }
 
 // API helpers
@@ -367,11 +405,11 @@ els.btnVpsConfigureBack.addEventListener('click', () => {
 // ─── Event handlers: VPS key/script (step 2) ─────────────────────────────────
 
 els.btnCopySshCmd.addEventListener('click', () => {
-  copyText(els.vpsSshCmd.textContent, els.copySshCmdFeedback);
+  copyText(els.vpsSshCmd.textContent, els.copySshCmdFeedback, els.vpsSshCmd);
 });
 
 els.btnCopyScript.addEventListener('click', () => {
-  copyText(els.vpsScriptText.textContent, els.copyScriptFeedback);
+  copyText(els.vpsScriptText.textContent, els.copyScriptFeedback, els.vpsScriptText);
 });
 
 els.btnVpsTest.addEventListener('click', async () => {
@@ -473,7 +511,7 @@ els.btnCancelClaim.addEventListener('click', () => { showScreen('setup'); });
 // ─── Event handlers: Copy endpoint ───────────────────────────────────────────
 
 els.btnCopy.addEventListener('click', () => {
-  copyText(els.endpointText.textContent, els.copyFeedback);
+  copyText(els.endpointText.textContent, els.copyFeedback, els.endpointText);
 });
 
 // ─── Event handlers: Reset ───────────────────────────────────────────────────
